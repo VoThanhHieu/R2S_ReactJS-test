@@ -6,7 +6,6 @@ import userService from "./../services/userService";
 const Login = () => {
   const navigate = useNavigate();
   const [message, setMessage] = useState("");
-  const [error, setError] = useState("");
   const usernameRef = React.useRef();
   const passwordRef = React.useRef();
   const formSubmitHandler = (e) => {
@@ -18,7 +17,6 @@ const Login = () => {
       if (res.errorCode === 0) navigate("/home");
       else {
         setMessage(res.message);
-        setError("Error");
       }
     });
   };
@@ -38,15 +36,9 @@ const Login = () => {
                 </h4>
               </div>
               <div className="card-body bg-white rounded-bottom">
-                {error ? (
-                  <p className="text-center text-danger">{message}</p>
-                ) : (
-                  <p className="text-center text-success">{message}</p>
-                )}
+                <p className="text-center text-danger">{message}</p>
                 <form onSubmit={formSubmitHandler}>
                   <Input
-                    // labelSize="4"
-                    // label="Enter your username"
                     inputRef={usernameRef}
                     label="Username"
                     type="text"

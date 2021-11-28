@@ -1,7 +1,12 @@
 import React from "react";
-import { Link } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 
 const Student = () => {
+  const navigate = useNavigate();
+  const showEditPage = (e, id) => {
+    e.preventDefault();
+    navigate(`/student/${id}`);
+  };
   return (
     <>
       <div className="container mt-4">
@@ -14,17 +19,13 @@ const Student = () => {
                 </h3>
               </div>
               <div className="col-auto">
-                {/* <button
+                <button
                   type="button"
                   className="btn btn-primary"
-                  data-bs-toggle="modal"
-                  data-bs-target="#editModal"
+                  onClick={(e) => showEditPage(e, 0)}
                 >
                   <i className="fas fa-plus"></i> Add
-               </button> */}
-                <Link to="/student/0" role="button" className="btn btn-primary">
-                  <i className="fas fa-plus"></i> Add
-                </Link>
+                </button>
               </div>
             </div>
           </div>
@@ -55,12 +56,12 @@ const Student = () => {
                     <td>0935875636</td>
                     <td>tamtm@yahoo.com</td>
                     <td className="text-center">
-                      <Link to="/student/1">
+                      <a href="/#" onClick={(e) => showEditPage(e, 1)}>
                         <i className="fas fa-edit text-primary"></i>
-                      </Link>
-                      <Link to="/">
+                      </a>
+                      <a href="/#">
                         <i className="fas fa-trash-alt text-danger"></i>
-                      </Link>
+                      </a>
                     </td>
                   </tr>
                   <tr>
@@ -73,12 +74,12 @@ const Student = () => {
                     <td>0937938573</td>
                     <td>thanhnt@yahoo.com</td>
                     <td className="text-center">
-                      <Link to="/student/1">
+                      <a href="/#" onClick={(e) => showEditPage(e, 1)}>
                         <i className="fas fa-edit text-primary"></i>
-                      </Link>
-                      <Link to="/">
+                      </a>
+                      <a href="/#">
                         <i className="fas fa-trash-alt text-danger"></i>
-                      </Link>
+                      </a>
                     </td>
                   </tr>
                   <tr>
@@ -91,12 +92,12 @@ const Student = () => {
                     <td>0918373635</td>
                     <td>tuanlt@yahoo.com</td>
                     <td className="text-center">
-                      <Link to="/student/1">
+                      <a href="/#" onClick={(e) => showEditPage(e, 1)}>
                         <i className="fas fa-edit text-primary"></i>
-                      </Link>
-                      <Link to="/">
+                      </a>
+                      <a href="/#">
                         <i className="fas fa-trash-alt text-danger"></i>
-                      </Link>
+                      </a>
                     </td>
                   </tr>
                   <tr>
@@ -109,12 +110,12 @@ const Student = () => {
                     <td>0917628363</td>
                     <td>sidl@yahoo.com</td>
                     <td className="text-center">
-                      <Link to="/student/1">
+                      <a href="/#" onClick={(e) => showEditPage(e, 1)}>
                         <i className="fas fa-edit text-primary"></i>
-                      </Link>
-                      <Link to="/">
+                      </a>
+                      <a href="/#">
                         <i className="fas fa-trash-alt text-danger"></i>
-                      </Link>
+                      </a>
                     </td>
                   </tr>
                 </tbody>

@@ -1,11 +1,15 @@
 import React, { useState, useEffect } from "react";
-import { Link, useParams } from "react-router-dom";
+import { useParams, useNavigate } from "react-router-dom";
 const StudentEdit = (props) => {
   const param = useParams();
+  const navigate = useNavigate();
   const [id, setId] = useState();
   useEffect(() => {
     setId(param.id);
   }, [param.id]);
+  const handleBack = (e) => {
+    navigate("/student");
+  };
   return (
     <div className="container mt-4">
       <div className="row justify-content-center">
@@ -134,13 +138,13 @@ const StudentEdit = (props) => {
               </form>
             </div>
             <div className="card-footer bg-transparent d-flex justify-content-center pt-3">
-              <Link
-                to="/student"
-                role="button"
+              <button
+                href="/#"
                 className="btn btn-secondary me-1"
+                onClick={handleBack}
               >
                 Close
-              </Link>
+              </button>
               <button type="button" className="btn btn-primary">
                 Save
               </button>

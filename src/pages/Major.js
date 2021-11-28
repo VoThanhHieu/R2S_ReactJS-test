@@ -1,160 +1,205 @@
-import React from "react";
-import { Link, useNavigate } from "react-router-dom";
+import React, { useEffect, useState } from "react";
+import {
+  Button,
+  Modal,
+  Container,
+  Card,
+  Row,
+  Col,
+  Table,
+} from "react-bootstrap";
+import Input from "../components/Input";
+// import { useNavigate } from "react-router-dom";
+import majorService from "../services/majorService";
+import { toast } from "react-toastify";
 
 const Major = () => {
-  const navigate = useNavigate();
-  const showEditPage = (e, id) => {
+  const [majors, setMajors] = useState([]);
+  const [showModal, setShowModal] = useState(false);
+  const [showConfirm, setshowConfirm] = useState(false);
+  const [major, setMajor] = useState({ id: 0, name: "" });
+  const [seletedId, setSeletedId] = useState({ id: 0 });
+
+  const handleModalClose = () => setShowModal(false);
+  const handleModalShow = () => setShowModal(true);
+  const handleConfirmClose = () => setshowConfirm(false);
+  const handleConfirmOpen = () => setshowConfirm(true);
+
+  const showOpenModal = (e, id) => {
     e.preventDefault();
-    navigate(`/major/${id}`);
+
+    if (id > 0) {
+      majorService.get(id).then((res) => {
+        setMajor(res.data);
+        handleModalShow();
+      });
+    } else {
+      setMajor({ id: 0, name: "" });
+      handleModalShow();
+    }
+  };
+  useEffect(() => {
+    loadData();
+  }, []);
+  const loadData = () => {
+    majorService.list().then((res) => {
+      setMajors(res.data);
+    });
+  };
+
+  const handleChangeData = (e) => {
+    const newData = { ...major };
+    newData[e.target.name] = e.target.value;
+    setMajor(newData);
+    console.log(newData);
+  };
+
+  const handleSave = () => {
+    if (major.id === 0) {
+      majorService.add(major).then((res) => {
+        if (res.errorCode === 0) {
+          loadData();
+          handleModalClose();
+          toast.success("Add Major Success");
+        }
+      });
+    } else {
+      majorService.update(major.id, major).then((res) => {
+        if (res.errorCode === 0) {
+          loadData();
+          handleModalClose();
+          toast.success("Update Major Success");
+        }
+      });
+    }
+  };
+
+  const hanhdleDelete = (e, id) => {
+    e.preventDefault();
+    setSeletedId(id);
+    handleConfirmOpen();
+    // majorService.delete(id).then((res) => {
+    //   if (res.errorCode === 0) {
+    //     loadData();
+    //     toast.warning("Delete Success");
+    //   } else {
+    //     toast.error("Delete Failed");
+    //   }
+    // });
+  };
+  const handleOk = () => {
+    majorService.delete(seletedId).then((res) => {
+      if (res.errorCode === 0) {
+        loadData();
+        toast.warning("Delete Success");
+      } else {
+        toast.error("Delete Failed");
+      }
+    });
+    handleConfirmClose();
   };
   return (
     <div>
-      <div className="container mt-4">
-        <div className="card border-primary bt-5px">
-          <div className="card-header">
-            <div className="row">
-              <div className="col">
+      <Container className="mt-4">
+        <Card className="border-primary bt-5px">
+          <Card.Header>
+            <Row>
+              <Col>
                 <h3 className="card-title">
                   Major <small className="text-muted">list</small>
                 </h3>
-              </div>
-              <div className="col-auto">
-                {/* <button
-                  type="button"
-                  className="btn btn-primary"
-                  data-bs-toggle="modal"
-                  data-bs-target="#editModal"
-                >
+              </Col>
+              <Col xs="auto">
+                <Button variant="primary" onClick={(e) => showOpenModal(e, 0)}>
+                  {" "}
                   <i className="fas fa-plus"></i> Add
-                </button> */}
-                <button
-                  type="button"
-                  onClick={(e) => showEditPage(e, 0)}
-                  className="btn btn-primary"
-                >
-                  <i className="fas fa-plus"></i> Add
-                </button>
-              </div>
-            </div>
-          </div>
-          <div className="card-body">
-            <div className="table-responsive">
-              <table className="table table-bordered table-hover mb-0 border-primary">
-                <thead className="table-primary border-primary">
-                  <tr>
-                    <th style={{ width: "50px" }} className="text-center">
-                      #
-                    </th>
-                    <th>Major Name</th>
-                    <th style={{ width: "80px" }} className="text-center"></th>
-                  </tr>
-                </thead>
-                <tbody>
-                  <tr>
-                    <th className="text-center">1</th>
-                    <td>IT</td>
+                </Button>
+              </Col>
+            </Row>
+          </Card.Header>
+          <Card.Body>
+            <Table bordered hover>
+              <thead className="table-primary border-primary">
+                <tr>
+                  <th style={{ width: "50px" }} className="text-center">
+                    #
+                  </th>
+                  <th>Major Name</th>
+                  <th style={{ width: "80px" }} className="text-center"></th>
+                </tr>
+              </thead>
+              <tbody>
+                {majors.map((major, idx) => (
+                  <tr key={major.id}>
+                    <th className="text-center">{idx + 1}</th>
+                    <td>{major.name}</td>
                     <td className="text-center">
-                      <a href="/#" onClick={(e) => showEditPage(e, 1)}>
+                      <a href="/#" onClick={(e) => showOpenModal(e, major.id)}>
                         <i className="fas fa-edit text-primary"></i>
                       </a>
-                      <a href="/#">
+                      <a href="/#" onClick={(e) => hanhdleDelete(e, major.id)}>
                         <i className="fas fa-trash-alt text-danger"></i>
                       </a>
                     </td>
                   </tr>
-                  <tr>
-                    <th className="text-center">2</th>
-                    <td>Marketing</td>
-                    <td className="text-center">
-                      <a href="/#" onClick={(e) => showEditPage(e, 1)}>
-                        <i className="fas fa-edit text-primary"></i>
-                      </a>
-                      <Link to="/#">
-                        <i className="fas fa-trash-alt text-danger"></i>
-                      </Link>
-                    </td>
-                  </tr>
-                  <tr>
-                    <th className="text-center">3</th>
-                    <td>Network</td>
-                    <td className="text-center">
-                      <a href="/#" onClick={(e) => showEditPage(e, 1)}>
-                        <i className="fas fa-edit text-primary"></i>
-                      </a>
-                      <Link to="/#">
-                        <i className="fas fa-trash-alt text-danger"></i>
-                      </Link>
-                    </td>
-                  </tr>
-                  <tr>
-                    <th className="text-center">4</th>
-                    <td>Accounting</td>
-                    <td className="text-center">
-                      <a href="/#" onClick={(e) => showEditPage(e, 1)}>
-                        <i className="fas fa-edit text-primary"></i>
-                      </a>
-                      <a href="/#">
-                        <i className="fas fa-trash-alt text-danger"></i>
-                      </a>
-                    </td>
-                  </tr>
-                </tbody>
-              </table>
-            </div>
-          </div>
-        </div>
-      </div>
-
+                ))}
+              </tbody>
+            </Table>
+          </Card.Body>
+        </Card>
+      </Container>
       {/* <!-- Modal --> */}
-      <div
-        className="modal fade"
-        id="editModal"
-        data-bs-backdrop="static"
-        data-bs-keyboard="false"
-        tabIndex="-1"
-        aria-labelledby="exampleModalLabel"
-        aria-hidden="true"
+      <Modal
+        show={showModal}
+        onHide={handleModalClose}
+        backdrop="static"
+        keyboard={false}
       >
-        <div className="modal-dialog">
-          <div className="modal-content">
-            <div className="modal-header">
-              <h5 className="modal-title" id="exampleModalLabel">
-                New Major
-              </h5>
-              <button
-                type="button"
-                className="btn-close"
-                data-bs-dismiss="modal"
-                aria-label="Close"
-              ></button>
-            </div>
-            <div className="modal-body">
-              <form>
-                <div className="row">
-                  <label htmlFor="txtMajor" className="col-sm-3 col-form-label">
-                    Major name
-                  </label>
-                  <div className="col-sm-9">
-                    <input type="text" className="form-control" id="txtMajor" />
-                  </div>
-                </div>
-              </form>
-            </div>
-            <div className="modal-footer">
-              <button
-                type="button"
-                className="btn btn-secondary"
-                data-bs-dismiss="modal"
-              >
-                Close
-              </button>
-              <button type="button" className="btn btn-primary">
-                Save
-              </button>
-            </div>
-          </div>
-        </div>
-      </div>
+        <Modal.Header closeButton>
+          <Modal.Title>{major.id > 0 ? "Edit" : "New"} Major</Modal.Title>
+        </Modal.Header>
+        <Modal.Body>
+          <form>
+            <Input
+              defaultValue={major.name}
+              label="Major name"
+              id="txtMajor"
+              type="text"
+              name="name"
+              onChange={handleChangeData}
+            />
+          </form>
+        </Modal.Body>
+        <Modal.Footer>
+          <Button variant="secondary" onClick={handleModalClose}>
+            Close
+          </Button>
+          <Button variant="primary" onClick={handleSave}>
+            Save
+          </Button>
+        </Modal.Footer>
+      </Modal>
+
+      {/* Modaldialog */}
+
+      <Modal
+        show={showConfirm}
+        onHide={handleConfirmClose}
+        className="text-center"
+      >
+        <Modal.Body>
+          {" "}
+          <p>Do you agree to delete?</p>
+        </Modal.Body>
+        <Modal.Footer>
+          <Button variant="secondary" onClick={handleConfirmClose}>
+            Close
+          </Button>
+          <Button variant="primary" onClick={handleOk}>
+            Ok
+          </Button>
+        </Modal.Footer>
+      </Modal>
     </div>
   );
 };

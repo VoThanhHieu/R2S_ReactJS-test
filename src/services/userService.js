@@ -4,7 +4,7 @@ const login = (username, password) => {
     username,
     password,
   };
-  return api.post(api.url.login, data).then((res) => res.data);
+  return api.post(api.url.login, data);
 };
 
 const userService = {

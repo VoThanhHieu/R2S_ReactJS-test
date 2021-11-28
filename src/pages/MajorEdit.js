@@ -1,13 +1,19 @@
 import React, { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
+import majorService from "../services/majorService";
 import Input from "./../components/Input";
 const MajorEdit = (props) => {
   const navigate = useNavigate();
   const param = useParams();
   const [major, setMajor] = useState({ id: 0, name: "" });
-  const [id, setId] = useState();
+
+  const [message, setMessage] = useState("");
   useEffect(() => {
-    setId(param.id);
+    if (param.id > 0) {
+      majorService.get(param.id).then((res) => {
+        setMajor(res.data);
+      });
+    }
   }, [param.id]);
   const hanhdleBack = () => {
     navigate("/major");
@@ -19,6 +25,28 @@ const MajorEdit = (props) => {
     setMajor(newData);
     console.log(newData);
   };
+  const handleSave = () => {
+    if (major.id === 0) {
+      majorService.add(major).then((res) => {
+        if (res.errorCode === 0) {
+          setMessage("");
+          navigate("/major");
+        } else {
+          setMessage(res.message);
+        }
+      });
+    } else {
+      majorService.update(major.id, major).then((res) => {
+        if (res.errorCode === 0) {
+          setMessage("");
+          navigate("/major");
+        } else {
+          setMessage(res.message);
+        }
+      });
+    }
+  };
+
   return (
     <div className="container mt-4">
       <div className="row justify-content-center">
@@ -30,15 +58,17 @@ const MajorEdit = (props) => {
                   <h3 className="card-title">
                     Major{" "}
                     <small className="text-muted">
-                      {id > 0 ? "Edit" : "New"}
+                      {major.id > 0 ? "Edit" : "New"}
                     </small>
                   </h3>
                 </div>
               </div>
             </div>
             <div className="card-body">
+              <p className="text-center text-danger">{message}</p>
               <form>
                 <Input
+                  defaultValue={major.name}
                   label="Major name"
                   id="txtMajor"
                   type="text"
@@ -50,13 +80,16 @@ const MajorEdit = (props) => {
             <div className="card-footer text-center">
               <button
                 onClick={hanhdleBack}
-                href="/#"
                 type="button"
                 className="btn btn-secondary me-1"
               >
                 Back
               </button>
-              <button type="button" className="btn btn-primary">
+              <button
+                type="button"
+                className="btn btn-primary"
+                onClick={handleSave}
+              >
                 Save
               </button>
             </div>
