@@ -10,23 +10,55 @@ import {
 } from "react-bootstrap";
 import instructorsService from "../services/instructorService";
 import { toast } from "react-toastify";
+import ConfirmDialog from "../components/ConfirmDialog";
+import * as Yup from "yup";
+import { useFormik } from "formik";
+import InputTwo from "../components/InputTwo";
 
 export const Instructor = () => {
   const [showModal, setShowModal] = useState(false);
   const [instructors, setInstructors] = useState([]);
-  const [showConfirm, setshowConfirm] = useState(false);
-  const [deleteId, setdeleteId] = useState("");
-  const [instructor, setInstructor] = useState({
-    id: "",
-    code: "",
-    firstName: "",
-    lastName: "",
-    gender: "",
-    phone: "",
-    email: "",
+  const [confirmOptions, setConfirmOptions] = useState({
+    show: false,
+    content: "",
+    dataId: 0,
   });
-  const handleConfirmClose = () => setshowConfirm(false);
-  const handleConfirmOpen = () => setshowConfirm(true);
+  // const phoneRegExp = `/^((\\+[1-9]{1,4}[ \\-]*)|(\\([0-9]{2,3}\\)[ \\-]*)|([0-9]{2,4})[ \\-]*)*?[0-9]{3,4}?[ \\-]*[0-9]{3,4}?$/`;
+  const formik = useFormik({
+    initialValues: {
+      id: 0,
+      code: "",
+      firstName: "",
+      lastName: "",
+      gender: 1,
+      phone: "",
+      email: "",
+    },
+    validationSchema: Yup.object({
+      id: Yup.number().required(),
+      code: Yup.string().required("Required"),
+      firstName: Yup.string()
+        .min(2, "Too Short!")
+        .max(20, "Too Long!")
+        .required("Required"),
+      lastName: Yup.string()
+        .min(3, "Too Short!")
+        .max(20, "Too Long!")
+        .required("Required"),
+      gender: Yup.number().required(),
+      phone: Yup.number()
+        .typeError("That doesn't look like a phone number")
+        .positive("A phone number can't start with a minus")
+        .integer("A phone number can't include a decimal point")
+        .min(8)
+        .required("A phone number is required"),
+      // phone: Yup.string().matches(phoneRegExp, "Phone number is not valid"),
+      email: Yup.string().email("Invalid email").required("Required"),
+    }),
+    onSubmit: (values) => {
+      handleSave(values);
+    },
+  });
   const handleModalClose = () => setShowModal(false);
   const handleModalShow = () => setShowModal(true);
   useEffect(() => {
@@ -43,33 +75,20 @@ export const Instructor = () => {
     e.preventDefault();
     if (id > 0) {
       instructorsService.get(id).then((res) => {
-        setInstructor(res.data);
+        formik.setValues(res.data);
         handleModalShow();
+        console.log(id);
       });
     } else {
-      setInstructor({
-        id: 0,
-        code: "",
-        firstName: "",
-        lastName: "",
-        gender: 1,
-        phone: "",
-        email: "",
-      });
+      console.log(id);
+      formik.resetForm();
       handleModalShow();
     }
   };
 
-  const handleChangeData = (e) => {
-    const newData = { ...instructor };
-    newData[e.target.name] = e.target.value;
-    setInstructor(newData);
-    console.log(newData);
-  };
-
-  const handleSave = () => {
-    if (instructor.id === 0) {
-      instructorsService.add(instructor).then((res) => {
+  const handleSave = (data) => {
+    if (data.id === 0) {
+      instructorsService.add(data).then((res) => {
         if (res.errorCode === 0) {
           loadData();
           handleModalClose();
@@ -77,7 +96,7 @@ export const Instructor = () => {
         }
       });
     } else {
-      instructorsService.update(instructor.id, instructor).then((res) => {
+      instructorsService.update(data.id, data).then((res) => {
         if (res.errorCode === 0) {
           loadData();
           handleModalClose();
@@ -89,15 +108,21 @@ export const Instructor = () => {
 
   const handleDelete = (e, id) => {
     e.preventDefault();
-    setdeleteId(id);
-    handleConfirmOpen();
-  };
-  const handOk = () => {
-    instructorsService.delete(deleteId).then((res) => {
-      loadData();
-      toast.warning("Delete Success");
+    const selecteIntrustor = instructors.find((x) => x.id === id);
+    setConfirmOptions({
+      show: true,
+      content: `Are you sure you want to delete "${selecteIntrustor.lastName} ${selecteIntrustor.firstName}" ?`,
+      dataId: id,
     });
-    handleConfirmClose();
+  };
+  const handleConfirm = (id) => {
+    setConfirmOptions({ show: false });
+    if (id) {
+      instructorsService.delete(id).then((res) => {
+        loadData();
+        toast.warning("Delete Success");
+      });
+    }
   };
 
   return (
@@ -172,7 +197,7 @@ export const Instructor = () => {
         </Card>
       </Container>
 
-      {/* Modal */}
+      {/* Modal Instructor*/}
 
       <Modal
         show={showModal}
@@ -181,151 +206,84 @@ export const Instructor = () => {
         aria-labelledby="example-modal-sizes-title-lg"
       >
         <Modal.Header closeButton>
-          <Modal.Title>New Student</Modal.Title>
+          <Modal.Title>
+            {formik.values.id > 0 ? "Edit" : "New"} Instructor
+          </Modal.Title>
         </Modal.Header>
         <Modal.Body>
           <form>
-            <Row className="mb-3">
-              <Col sm={4} lg={2} required className="col-form-label">
-                {" "}
-                <label htmlFor="txtId">Student Id</label>
-              </Col>
-              <Col lg={5}>
-                <input
-                  onChange={handleChangeData}
-                  defaultValue={instructor.code}
-                  name="code"
-                  type="text"
-                  className="form-control"
-                  id="txtId"
-                  placeholder="Student Id"
-                />
-              </Col>
-            </Row>
-            <Row className="mb-3">
-              <Col sm={12} lg={2} required className="col-form-label">
-                <label htmlFor="txtLastName">Full name</label>
-              </Col>
-              <Col sm={6} lg={5} required className="col-form-label">
-                <input
-                  onChange={handleChangeData}
-                  name="lastName"
-                  defaultValue={instructor.lastName}
-                  type="text"
-                  className="form-control"
-                  id="txtLastName"
-                  placeholder="Last name"
-                />
-              </Col>
-              <Col sm={6} lg={5} required className="col-form-label">
-                <input
-                  onChange={handleChangeData}
-                  name="firstName"
-                  defaultValue={instructor.firstName}
-                  type="text"
-                  className="form-control"
-                  id="txtFirstName"
-                  placeholder="First name"
-                />
-              </Col>
-            </Row>
-            <Row className="mb-3">
-              <Col sm={2} required className="col-form-label">
-                <label htmlFor="radMale">Gender</label>
-              </Col>
-              <Col className="col-form-label">
-                <div className="form-check form-check-inline">
-                  <input
-                    onChange={handleChangeData}
-                    className="form-check-input"
-                    type="radio"
-                    name="gender"
-                    id="radMale"
-                    value="1"
-                    defaultChecked={instructor.gender === 1}
-                  />
-                  <label className="form-check-label" htmlFor="radMale">
-                    Male
-                  </label>
-                </div>
-                <div className="form-check form-check-inline">
-                  <input
-                    onChange={handleChangeData}
-                    className="form-check-input"
-                    type="radio"
-                    id="radFeMale"
-                    name="gender"
-                    value="0"
-                    defaultChecked={instructor.gender === 0}
-                  />
-                  <label className="form-check-label" htmlFor="radFeMale">
-                    Female
-                  </label>
-                </div>
-              </Col>
-            </Row>
-            <Row className="mb-3">
-              <Col sm={4} lg={2} required className="col-form-label">
-                <label htmlFor="txtPhone">Phone</label>
-              </Col>
-              <Col lg={5}>
-                <input
-                  onChange={handleChangeData}
-                  name="phone"
-                  defaultValue={instructor.phone}
-                  type="tel"
-                  className="form-control"
-                  id="txtPhone"
-                  placeholder="Phone number"
-                />
-              </Col>
-            </Row>
-            <Row className="mb-3">
-              <Col sm={4} lg={2} required className="col-form-label">
-                <label htmlFor="txtPhone">Email</label>
-              </Col>
-              <Col lg={5}>
-                <input
-                  onChange={handleChangeData}
-                  name="email"
-                  defaultValue={instructor.email}
-                  type="email"
-                  className="form-control"
-                  id="txtEmail"
-                  placeholder="Email address"
-                />
-              </Col>
-            </Row>
+            <InputTwo
+              type="text"
+              label="Code"
+              id="txtId"
+              name="code"
+              placeholder="Instructor Code"
+              frmField={formik.getFieldProps("code")}
+              err={formik.touched.code && formik.errors.code}
+              errMessage={formik.errors.code}
+            />
+            <InputTwo
+              label="Full Name"
+              type="text"
+              rows="2"
+              id="txtLastName"
+              id2="txtFirstName"
+              placeHolder="Last name"
+              placeHolder2="First Name"
+              name="lastName"
+              name2="firstName"
+              frmField={formik.getFieldProps("lastName")}
+              err={formik.touched.lastName && formik.errors.lastName}
+              errMessage={formik.errors.lastName}
+              frmField2={formik.getFieldProps("firstName")}
+              err2={formik.touched.firstName && formik.errors.firstName}
+              errMessage2={formik.errors.firstName}
+            />
+            <InputTwo
+              type="radio"
+              label="Gender"
+              name="gender"
+              id="radMale"
+              frmField={formik.getFieldProps("gender")}
+              err={formik.touched.gender && formik.errors.gender}
+              errMessage={formik.errors.gender}
+              defaultChecked={parseInt(formik.values.gender)}
+            />
+            <div>Picked: {formik.values.gender}</div>
+            <InputTwo
+              type="tel"
+              label="Phone"
+              id="txtPhone"
+              name="phone"
+              placeholder="Phone number"
+              frmField={formik.getFieldProps("phone")}
+              err={formik.touched.phone && formik.errors.phone}
+              errMessage={formik.errors.phone}
+            />
+            <InputTwo
+              type="email"
+              label="Email"
+              id="txtEmail"
+              name="email"
+              placeholder="Email address"
+              frmField={formik.getFieldProps("email")}
+              err={formik.touched.email && formik.errors.email}
+              errMessage={formik.errors.email}
+            />
           </form>
         </Modal.Body>
-        <Modal.Footer>
+        <Modal.Footer className="d-flex justify-content-center">
           <Button variant="secondary" onClick={handleModalClose}>
             Close
           </Button>
-          <Button variant="primary" onClick={handleSave}>
+          <Button variant="primary" onClick={formik.handleSubmit}>
             Save Changes
           </Button>
         </Modal.Footer>
       </Modal>
+
       {/* Modal confirm delete                 */}
-      <Modal
-        show={showConfirm}
-        onHide={handleConfirmClose}
-        className="text-center"
-      >
-        <Modal.Body>
-          {" "}
-          <p>Do you agree to delete?</p>
-        </Modal.Body>
-        <Modal.Footer className="d-flex justify-content-center">
-          <Button variant="secondary" onClick={handleConfirmClose}>
-            Close
-          </Button>
-          <Button variant="primary" onClick={handOk}>
-            Ok
-          </Button>
-        </Modal.Footer>
-      </Modal>
+      <ConfirmDialog options={confirmOptions} onConfirm={handleConfirm} />
     </>
   );
 };

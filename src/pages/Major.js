@@ -12,29 +12,46 @@ import Input from "../components/Input";
 // import { useNavigate } from "react-router-dom";
 import majorService from "../services/majorService";
 import { toast } from "react-toastify";
+import { useFormik } from "formik";
+import * as Yup from "yup";
+import ConfirmDialog from "../components/ConfirmDialog";
 
 const Major = () => {
   const [majors, setMajors] = useState([]);
   const [showModal, setShowModal] = useState(false);
-  const [showConfirm, setshowConfirm] = useState(false);
-  const [major, setMajor] = useState({ id: 0, name: "" });
-  const [seletedId, setSeletedId] = useState({ id: 0 });
+  // const [major, setMajor] = useState({ id: 0, name: "" });
+  const [confirmOptions, setConfirmOptions] = useState({
+    show: false,
+    content: "",
+    dataId: 0,
+  });
 
   const handleModalClose = () => setShowModal(false);
   const handleModalShow = () => setShowModal(true);
-  const handleConfirmClose = () => setshowConfirm(false);
-  const handleConfirmOpen = () => setshowConfirm(true);
 
+  const frm = useFormik({
+    initialValues: {
+      id: 0,
+      name: "",
+    },
+    validationSchema: Yup.object({
+      id: Yup.number().required(),
+      name: Yup.string().required("Required").min(5, ">=5 Character"),
+    }),
+    onSubmit: (values) => {
+      handleSave(values);
+    },
+  });
   const showOpenModal = (e, id) => {
     e.preventDefault();
 
     if (id > 0) {
       majorService.get(id).then((res) => {
-        setMajor(res.data);
+        frm.setValues(res.data);
         handleModalShow();
       });
     } else {
-      setMajor({ id: 0, name: "" });
+      frm.resetForm();
       handleModalShow();
     }
   };
@@ -47,16 +64,16 @@ const Major = () => {
     });
   };
 
-  const handleChangeData = (e) => {
-    const newData = { ...major };
-    newData[e.target.name] = e.target.value;
-    setMajor(newData);
-    console.log(newData);
-  };
+  // const handleChangeData = (e) => {
+  //   const newData = { ...major };
+  //   newData[e.target.name] = e.target.value;
+  //   setMajor(newData);
+  //   console.log(newData);
+  // };
 
-  const handleSave = () => {
-    if (major.id === 0) {
-      majorService.add(major).then((res) => {
+  const handleSave = (data) => {
+    if (data.id === 0) {
+      majorService.add(data).then((res) => {
         if (res.errorCode === 0) {
           loadData();
           handleModalClose();
@@ -64,7 +81,7 @@ const Major = () => {
         }
       });
     } else {
-      majorService.update(major.id, major).then((res) => {
+      majorService.update(data.id, data).then((res) => {
         if (res.errorCode === 0) {
           loadData();
           handleModalClose();
@@ -76,27 +93,27 @@ const Major = () => {
 
   const hanhdleDelete = (e, id) => {
     e.preventDefault();
-    setSeletedId(id);
-    handleConfirmOpen();
-    // majorService.delete(id).then((res) => {
-    //   if (res.errorCode === 0) {
-    //     loadData();
-    //     toast.warning("Delete Success");
-    //   } else {
-    //     toast.error("Delete Failed");
-    //   }
-    // });
+    const selecteMajor = majors.find((x) => x.id === id);
+    if (selecteMajor) {
+      setConfirmOptions({
+        show: true,
+        content: `Are you sure you want to delete "${selecteMajor.name}" ? `,
+        dataId: id,
+      });
+    }
   };
-  const handleOk = () => {
-    majorService.delete(seletedId).then((res) => {
-      if (res.errorCode === 0) {
-        loadData();
-        toast.warning("Delete Success");
-      } else {
-        toast.error("Delete Failed");
-      }
-    });
-    handleConfirmClose();
+  const handleConfirm = (id) => {
+    setConfirmOptions({ show: false });
+    if (id) {
+      majorService.delete(id).then((res) => {
+        if (res.errorCode === 0) {
+          loadData();
+          toast.warning("Delete Success");
+        } else {
+          toast.error("Delete Failed");
+        }
+      });
+    }
   };
   return (
     <div>
@@ -156,50 +173,37 @@ const Major = () => {
         keyboard={false}
       >
         <Modal.Header closeButton>
-          <Modal.Title>{major.id > 0 ? "Edit" : "New"} Major</Modal.Title>
+          <Modal.Title>{frm.values.id > 0 ? "Edit" : "New"} Major</Modal.Title>
         </Modal.Header>
         <Modal.Body>
           <form>
             <Input
-              defaultValue={major.name}
               label="Major name"
               id="txtMajor"
               type="text"
               name="name"
-              onChange={handleChangeData}
+              frmField={frm.getFieldProps("name")}
+              err={frm.touched.name && frm.errors.name}
+              errMessage={frm.errors.name}
             />
           </form>
         </Modal.Body>
-        <Modal.Footer>
+        <Modal.Footer className="d-flex justify-content-center">
           <Button variant="secondary" onClick={handleModalClose}>
             Close
           </Button>
-          <Button variant="primary" onClick={handleSave}>
+          <Button
+            variant="primary"
+            onClick={frm.handleSubmit}
+            disabled={!frm.dirty || !frm.isValid}
+          >
             Save
           </Button>
         </Modal.Footer>
       </Modal>
 
       {/* Modaldialog */}
-
-      <Modal
-        show={showConfirm}
-        onHide={handleConfirmClose}
-        className="text-center"
-      >
-        <Modal.Body>
-          {" "}
-          <p>Do you agree to delete?</p>
-        </Modal.Body>
-        <Modal.Footer>
-          <Button variant="secondary" onClick={handleConfirmClose}>
-            Close
-          </Button>
-          <Button variant="primary" onClick={handleOk}>
-            Ok
-          </Button>
-        </Modal.Footer>
-      </Modal>
+      <ConfirmDialog options={confirmOptions} onConfirm={handleConfirm} />
     </div>
   );
 };
