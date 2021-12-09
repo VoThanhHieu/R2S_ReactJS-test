@@ -1,10 +1,13 @@
 import axios from "axios";
+import store from "../store/index";
+import { showLoading, hideLoading } from "react-redux-loading-bar";
 
 const url = {
-  baseUrl: "https://www.saigontech.edu.vn/restful-api",
+  baseUrl: "https://restfulapi.dnd-group.net/api",
   login: "/login",
   majors: "/majors",
   instructors: "/instructors",
+  students: "/students",
 };
 
 const instance = axios.create({
@@ -14,12 +17,23 @@ const instance = axios.create({
     Accept: "application/json",
   },
 });
-instance.interceptors.request.use((request) => request);
+instance.interceptors.request.use((request) => {
+  const state = store.getState();
+  if (state.auth.token) {
+    request.headers.Authorization = `Bearer ${state.auth.token}`;
+  }
+  store.dispatch(showLoading());
+  return request;
+});
 instance.interceptors.response.use(
-  (response) => response.data,
+  (response) => {
+    setTimeout(() => store.dispatch(hideLoading()), 1000);
+    return response.data;
+  },
   (error) => {
+    setTimeout(() => store.dispatch(hideLoading()), 1000);
     if (!error.response) {
-      window.location.href = "/no-internet";
+      // window.location.href = "/no-internet";
     } else {
       switch (error.response.status) {
         case 401:

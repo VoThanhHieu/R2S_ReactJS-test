@@ -7,6 +7,7 @@ import {
   Row,
   Col,
   Table,
+  Pagination,
 } from "react-bootstrap";
 import Input from "../components/Input";
 // import { useNavigate } from "react-router-dom";
@@ -15,8 +16,13 @@ import { toast } from "react-toastify";
 import { useFormik } from "formik";
 import * as Yup from "yup";
 import ConfirmDialog from "../components/ConfirmDialog";
+import { useTranslation } from "react-i18next";
 
 const Major = () => {
+  const { t } = useTranslation();
+  const [page, setPage] = useState(0);
+  const [pageLength, setPageLength] = useState(5);
+  const [pageNumber, setPageNumber] = useState([]);
   const [majors, setMajors] = useState([]);
   const [showModal, setShowModal] = useState(false);
   // const [major, setMajor] = useState({ id: 0, name: "" });
@@ -57,19 +63,33 @@ const Major = () => {
   };
   useEffect(() => {
     loadData();
-  }, []);
+  }, [page, pageLength]);
   const loadData = () => {
-    majorService.list().then((res) => {
+    majorService.getPaging(page, pageLength).then((res) => {
       setMajors(res.data);
+      const items = [
+        <Pagination.First key="first" onClick={() => setPage(0)} />,
+      ];
+      for (let i = 0; i < res.pagingInfo.totalPages; i++) {
+        items.push(
+          <Pagination.Item
+            key={i}
+            active={i === page}
+            onClick={() => setPage(i)}
+          >
+            {i + 1}
+          </Pagination.Item>
+        );
+      }
+      items.push(
+        <Pagination.Last
+          key="last"
+          onClick={() => setPage(res.pagingInfo.totalPages - 1)}
+        />
+      );
+      setPageNumber(items);
     });
   };
-
-  // const handleChangeData = (e) => {
-  //   const newData = { ...major };
-  //   newData[e.target.name] = e.target.value;
-  //   setMajor(newData);
-  //   console.log(newData);
-  // };
 
   const handleSave = (data) => {
     if (data.id === 0) {
@@ -115,6 +135,10 @@ const Major = () => {
       });
     }
   };
+  const handleChangeSelect = (e) => {
+    setPage(0);
+    setPageLength(e.target.value);
+  };
   return (
     <div>
       <Container className="mt-4">
@@ -123,25 +147,48 @@ const Major = () => {
             <Row>
               <Col>
                 <h3 className="card-title">
-                  Major <small className="text-muted">list</small>
+                  <small className="text-muted">{t("list")}</small>
+                  {t("major")}
                 </h3>
               </Col>
               <Col xs="auto">
                 <Button variant="primary" onClick={(e) => showOpenModal(e, 0)}>
                   {" "}
-                  <i className="fas fa-plus"></i> Add
+                  <i className="fas fa-plus"></i> {t("add")}
                 </Button>
               </Col>
             </Row>
           </Card.Header>
           <Card.Body>
+            <Row className="mb-2">
+              <Col>
+                <Row>
+                  <label className="form-control-label col-sm-auto">
+                    Page Length
+                  </label>
+                  <Col>
+                    <select
+                      value={pageLength}
+                      onChange={handleChangeSelect}
+                      className="form-select form-select-sm"
+                      style={{ width: "80px" }}
+                    >
+                      <option value="5">5</option>
+                      <option value="10">10</option>
+                      <option value="15">15</option>
+                    </select>
+                  </Col>
+                </Row>
+              </Col>
+              <Col xs="auto"></Col>
+            </Row>
             <Table bordered hover>
               <thead className="table-primary border-primary">
                 <tr>
                   <th style={{ width: "50px" }} className="text-center">
                     #
                   </th>
-                  <th>Major Name</th>
+                  <th>{t("majorName")}</th>
                   <th style={{ width: "80px" }} className="text-center"></th>
                 </tr>
               </thead>
@@ -162,6 +209,9 @@ const Major = () => {
                 ))}
               </tbody>
             </Table>
+            <Pagination className="justify-content-end" size="sm">
+              {pageNumber}
+            </Pagination>
           </Card.Body>
         </Card>
       </Container>

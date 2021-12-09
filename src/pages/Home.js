@@ -1,9 +1,11 @@
 import React from "react";
+import { useTranslation } from "react-i18next";
 
 const Home = () => {
+  const { t } = useTranslation();
   return (
     <div className="container mt-5">
-      <h1 className="text-center text-primary">Welcome to Admin site!</h1>
+      <h1 className="text-center text-primary">{t("welcome")}</h1>
     </div>
   );
 };

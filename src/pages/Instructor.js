@@ -249,7 +249,7 @@ export const Instructor = () => {
               errMessage={formik.errors.gender}
               defaultChecked={parseInt(formik.values.gender)}
             />
-            <div>Picked: {formik.values.gender}</div>
+            {/* <div>Picked: {formik.values.gender}</div> */}
             <InputTwo
               type="tel"
               label="Phone"
@@ -276,7 +276,11 @@ export const Instructor = () => {
           <Button variant="secondary" onClick={handleModalClose}>
             Close
           </Button>
-          <Button variant="primary" onClick={formik.handleSubmit}>
+          <Button
+            variant="primary"
+            disabled={!formik.dirty || !formik.isValid}
+            onClick={formik.handleSubmit}
+          >
             Save Changes
           </Button>
         </Modal.Footer>

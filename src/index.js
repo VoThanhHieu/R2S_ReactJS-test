@@ -5,9 +5,13 @@ import "bootstrap/dist/css/bootstrap.css";
 import "react-toastify/dist/ReactToastify.css";
 import { toast } from "react-toastify";
 import "@fortawesome/fontawesome-free/css/all.css";
+import "flag-icon-css/css/flag-icons.css";
 
 import "./index.css";
 import App from "./App";
+import "./i18n";
+import { Provider } from "react-redux";
+import store from "./store/index";
 
 toast.configure({
   position: "top-right",
@@ -22,8 +26,8 @@ toast.configure({
 });
 
 ReactDOM.render(
-  <React.StrictMode>
+  <Provider store={store}>
     <App />
-  </React.StrictMode>,
+  </Provider>,
   document.getElementById("root")
 );

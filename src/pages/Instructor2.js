@@ -13,8 +13,10 @@ import { toast } from "react-toastify";
 import ConfirmDialog from "../components/ConfirmDialog";
 import * as Yup from "yup";
 import { useFormik } from "formik";
+import { useTranslation } from "react-i18next";
 
 export const Instructor2 = () => {
+  const { t } = useTranslation();
   const [showModal, setShowModal] = useState(false);
   const [instructors, setInstructors] = useState([]);
   const [confirmOptions, setConfirmOptions] = useState({
@@ -154,7 +156,7 @@ export const Instructor2 = () => {
               </Col>
               <Col xs="auto">
                 <Button variant="primary" onClick={(e) => showOpenModal(e, 0)}>
-                  <i className="fas fa-plus"></i> Add
+                  <i className="fas fa-plus"></i> {t("add")}
                 </Button>
               </Col>
             </Row>
@@ -167,9 +169,9 @@ export const Instructor2 = () => {
                     #
                   </th>
                   <th>Instructor Id</th>
-                  <th>Full name</th>
-                  <th style={{ width: "50px" }}>Gender</th>
-                  <th>Phone</th>
+                  <th>{t("fullname")}</th>
+                  <th style={{ width: "50px" }}>{t("gender")}</th>
+                  <th>{t("phone")}</th>
                   <th>Email</th>
                   <th style={{ width: "80px" }}></th>
                 </tr>
@@ -391,7 +393,11 @@ export const Instructor2 = () => {
           <Button variant="secondary" onClick={handleModalClose}>
             Close
           </Button>
-          <Button variant="primary" onClick={formik.handleSubmit}>
+          <Button
+            variant="primary"
+            disabled={!formik.dirty || !formik.isValid}
+            onClick={formik.handleSubmit}
+          >
             Save Changes
           </Button>
         </Modal.Footer>

@@ -1,12 +1,135 @@
-import React from "react";
-import { useNavigate } from "react-router-dom";
+import React, { useEffect, useState } from "react";
+import { Col, Modal, Row, Button } from "react-bootstrap";
+import studentService from "../services/studentService";
+import { useFormik } from "formik";
+import * as Yup from "yup";
+import ConfirmDialog from "../components/ConfirmDialog";
+import { toast } from "react-toastify";
+import majorService from "./../services/majorService";
+import { useTranslation } from "react-i18next";
 
 const Student = () => {
-  const navigate = useNavigate();
+  const { t } = useTranslation();
+  const [showModal, setShowModal] = useState(false);
+  const [students, setStudents] = useState([]);
+  const [majors, setMajors] = useState([]);
+  const [confirmOptions, setConfirmOptions] = useState({
+    dataId: 0,
+    show: false,
+    content: "",
+  });
+
+  const handleModalClose = () => setShowModal(false);
+  const handleModalShow = () => setShowModal(true);
+
+  const formik = useFormik({
+    initialValues: {
+      id: 0,
+      stuId: "",
+      firstName: "",
+      lastName: "",
+      gender: 1,
+      phone: "",
+      email: "",
+      majorId: 0,
+    },
+    validationSchema: Yup.object({
+      id: Yup.number().required(),
+      majorId: Yup.number().required(),
+      stuId: Yup.string().required(),
+      firstName: Yup.string()
+        .min(2, "Too Short!")
+        .max(20, "Too Long!")
+        .required("Required"),
+      lastName: Yup.string()
+        .min(3, "Too Short!")
+        .max(20, "Too Long!")
+        .required("Required"),
+      gender: Yup.number().required(),
+      phone: Yup.number()
+        .typeError("That doesn't look like a phone number")
+        .positive("A phone number can't start with a minus")
+        .integer("A phone number can't include a decimal point")
+        .min(8)
+        .required("A phone number is required"),
+      // phone: Yup.string().matches(phoneRegExp, "Phone number is not valid"),
+      email: Yup.string().email("Invalid email").required("Required"),
+    }),
+    onSubmit: (values) => {
+      handleSave(values);
+    },
+  });
+  useEffect(() => {
+    loadData();
+  }, []);
+
+  const loadData = () => {
+    studentService.list().then((res) => {
+      setStudents(res.data);
+    });
+    majorService.list().then((res) => {
+      setMajors(res.data);
+    });
+  };
+  const handleDelete = (e, id) => {
+    e.preventDefault();
+    const selecteStudent = students.find((x) => x.id === id);
+    if (selecteStudent) {
+      setConfirmOptions({
+        show: true,
+        dataId: id,
+        content: `Are you sure you want to delete "${selecteStudent.lastName} ${selecteStudent.firstName} " ? `,
+      });
+    }
+  };
+  const handleSave = (data) => {
+    if (data.id > 0) {
+      studentService.update(data.id, data).then((res) => {
+        if (res.errorCode === 0) {
+          loadData(res.data);
+          handleModalClose();
+          toast.success("Add student success");
+        }
+      });
+    } else {
+      studentService.add(data).then((res) => {
+        if (res.errorCode === 0) {
+          loadData(res.data);
+          handleModalClose();
+          toast.success("Add student success");
+        }
+      });
+    }
+  };
+  const handleSubmit = (id) => {
+    setConfirmOptions({ show: false });
+    if (id) {
+      studentService.delete(id).then((res) => {
+        if (res.errorCode === 0) {
+          toast.warning("Delete Success");
+        } else {
+          toast.warning("Delete Faild");
+        }
+        loadData(res.data);
+      });
+    }
+  };
   const showEditPage = (e, id) => {
     e.preventDefault();
-    navigate(`/student/${id}`);
+    // setMajor(majorSelect);
+    if (id > 0) {
+      const majorSelect = majors.find((x) => x.id === id);
+      console.log(majorSelect);
+      studentService.get(id).then((res) => {
+        formik.setValues(res.data);
+        handleModalShow();
+      });
+    } else {
+      formik.resetForm();
+      handleModalShow();
+    }
   };
+
   return (
     <>
       <div className="container mt-4">
@@ -24,7 +147,7 @@ const Student = () => {
                   className="btn btn-primary"
                   onClick={(e) => showEditPage(e, 0)}
                 >
-                  <i className="fas fa-plus"></i> Add
+                  <i className="fas fa-plus"></i> {t("add")}
                 </button>
               </div>
             </div>
@@ -38,86 +161,48 @@ const Student = () => {
                       #
                     </th>
                     <th>Student Id</th>
-                    <th>Full name</th>
-                    <th style={{ width: "50px" }}>Gender</th>
-                    <th>Phone</th>
+                    <th>{t("fullname")}</th>
+                    <th style={{ width: "50px" }}>{t("gender")}</th>
+                    <th>{t("phone")}</th>
                     <th>Email</th>
                     <th style={{ width: "80px" }}></th>
                   </tr>
                 </thead>
                 <tbody>
-                  <tr>
-                    <th className="text-center">1</th>
-                    <td>01-03-9384</td>
-                    <td>Trần Minh Tâm</td>
-                    <td className="text-center">
-                      <i className="fas fa-male text-primary fa-lg"></i>
-                    </td>
-                    <td>0935875636</td>
-                    <td>tamtm@yahoo.com</td>
-                    <td className="text-center">
-                      <a href="/#" onClick={(e) => showEditPage(e, 1)}>
-                        <i className="fas fa-edit text-primary"></i>
-                      </a>
-                      <a href="/#">
-                        <i className="fas fa-trash-alt text-danger"></i>
-                      </a>
-                    </td>
-                  </tr>
-                  <tr>
-                    <th className="text-center">2</th>
-                    <td>01-03-9344</td>
-                    <td>Nguyễn Thị Thanh</td>
-                    <td className="text-center">
-                      <i className="fas fa-female text-warning fa-lg"></i>
-                    </td>
-                    <td>0937938573</td>
-                    <td>thanhnt@yahoo.com</td>
-                    <td className="text-center">
-                      <a href="/#" onClick={(e) => showEditPage(e, 1)}>
-                        <i className="fas fa-edit text-primary"></i>
-                      </a>
-                      <a href="/#">
-                        <i className="fas fa-trash-alt text-danger"></i>
-                      </a>
-                    </td>
-                  </tr>
-                  <tr>
-                    <th className="text-center">3</th>
-                    <td>01-04-9846</td>
-                    <td>Lê Thanh Tuấn</td>
-                    <td className="text-center">
-                      <i className="fas fa-male text-primary fa-lg"></i>
-                    </td>
-                    <td>0918373635</td>
-                    <td>tuanlt@yahoo.com</td>
-                    <td className="text-center">
-                      <a href="/#" onClick={(e) => showEditPage(e, 1)}>
-                        <i className="fas fa-edit text-primary"></i>
-                      </a>
-                      <a href="/#">
-                        <i className="fas fa-trash-alt text-danger"></i>
-                      </a>
-                    </td>
-                  </tr>
-                  <tr>
-                    <th className="text-center">4</th>
-                    <td>01-04-8363</td>
-                    <td>Đinh La Si</td>
-                    <td className="text-center">
-                      <i className="fas fa-male text-primary fa-lg"></i>
-                    </td>
-                    <td>0917628363</td>
-                    <td>sidl@yahoo.com</td>
-                    <td className="text-center">
-                      <a href="/#" onClick={(e) => showEditPage(e, 1)}>
-                        <i className="fas fa-edit text-primary"></i>
-                      </a>
-                      <a href="/#">
-                        <i className="fas fa-trash-alt text-danger"></i>
-                      </a>
-                    </td>
-                  </tr>
+                  {students.map((student, index) => (
+                    <tr key={index}>
+                      <th className="text-center">{index + 1}</th>
+                      <td>{student.stuId}</td>
+                      <td>
+                        {student.lastName} {student.firstName}
+                      </td>
+                      {student.gender === 0 ? (
+                        <td className="text-center">
+                          <i className="fas fa-male text-primary fa-lg"></i>
+                        </td>
+                      ) : (
+                        <td className="text-center">
+                          <i className="fas fa-female text-warning fa-lg"></i>
+                        </td>
+                      )}
+                      <td>{student.phone}</td>
+                      <td>{student.email}</td>
+                      <td className="text-center">
+                        <a
+                          href="/#"
+                          onClick={(e) => showEditPage(e, student.id)}
+                        >
+                          <i className="fas fa-edit text-primary"></i>
+                        </a>
+                        <a
+                          href="/#"
+                          onClick={(e, id) => handleDelete(e, student.id)}
+                        >
+                          <i className="fas fa-trash-alt text-danger"></i>
+                        </a>
+                      </td>
+                    </tr>
+                  ))}
                 </tbody>
               </table>
             </div>
@@ -126,152 +211,216 @@ const Student = () => {
       </div>
 
       {/* <!-- Modal --> */}
-      <div
-        className="modal fade"
-        id="editModal"
-        data-bs-backdrop="static"
-        data-bs-keyboard="false"
-        tabIndex="-1"
-        aria-labelledby="exampleModalLabel"
-        aria-hidden="true"
+
+      <Modal
+        show={showModal}
+        onHide={handleModalClose}
+        size="lg"
+        aria-labelledby="example-modal-sizes-title-lg"
       >
-        <div className="modal-dialog modal-lg">
-          <div className="modal-content">
-            <div className="modal-header">
-              <h5 className="modal-title" id="exampleModalLabel">
-                New Student
-              </h5>
-              <button
-                type="button"
-                className="btn-close"
-                data-bs-dismiss="modal"
-                aria-label="Close"
-              ></button>
-            </div>
-            <div className="modal-body">
-              <form>
-                <div className="row mb-3">
-                  <label
-                    htmlFor="txtId"
-                    className="col-sm-2 col-form-label required"
-                  >
-                    Student Id
+        <Modal.Header closeButton>
+          <Modal.Title>
+            {formik.values.id > 0 ? "Edit" : "New"} Student
+          </Modal.Title>
+        </Modal.Header>
+        <Modal.Body>
+          <form>
+            <Row className="mb-3">
+              <Col sm={4} lg={2} required className="col-form-label">
+                <label htmlFor="txtId">Code</label>
+              </Col>
+              <Col lg={5}>
+                <input
+                  onChange={formik.handleChange}
+                  value={formik.values.stuId}
+                  name="stuId"
+                  type="text"
+                  className={`form-control ${
+                    formik.touched.stuId && formik.errors.stuId
+                      ? "is-invalid"
+                      : ""
+                  }`}
+                  id="txtId"
+                  placeholder="Student Code"
+                />
+                {formik.errors.stuId ? (
+                  <div className="invalid-feedback">{formik.errors.stuId}</div>
+                ) : (
+                  ""
+                )}
+              </Col>
+            </Row>
+            <Row className="mb-3">
+              <Col sm={12} lg={2} required className="col-form-label">
+                <label htmlFor="txtLastName">{t("fullname")}</label>
+              </Col>
+              <Col sm={6} lg={5} required className="col-form-label">
+                <input
+                  onChange={formik.handleChange}
+                  value={formik.values.lastName}
+                  name="lastName"
+                  type="text"
+                  className={`form-control ${
+                    formik.touched.lastName && formik.errors.lastName
+                      ? "is-invalid"
+                      : ""
+                  }`}
+                  id="txtLastName"
+                  placeholder="Last name"
+                />
+                {formik.errors.lastName ? (
+                  <div className="invalid-feedback">
+                    {formik.errors.lastName}
+                  </div>
+                ) : (
+                  ""
+                )}
+              </Col>
+              <Col sm={6} lg={5} required className="col-form-label">
+                <input
+                  onChange={formik.handleChange}
+                  value={formik.values.firstName}
+                  name="firstName"
+                  type="text"
+                  className={`form-control ${
+                    formik.touched.firstName && formik.errors.firstName
+                      ? "is-invalid"
+                      : ""
+                  }`}
+                  id="txtFirstName"
+                  placeholder="First name"
+                />
+                {formik.errors.firstName ? (
+                  <div className="invalid-feedback">
+                    {formik.errors.firstName}
+                  </div>
+                ) : (
+                  ""
+                )}
+              </Col>
+            </Row>
+            <Row className="mb-3">
+              <Col sm={2} required className="col-form-label">
+                <label htmlFor="radMale"> {t("gender")} </label>
+              </Col>
+              <Col className="col-form-label">
+                <div className="form-check form-check-inline">
+                  <input
+                    onChange={formik.handleChange}
+                    defaultChecked={formik.values.gender === 0}
+                    className="form-check-input"
+                    type="radio"
+                    name="gender"
+                    id="radMale"
+                    value="0"
+                  />
+                  <label className="form-check-label" htmlFor="radMale">
+                    {t("male")}
                   </label>
-                  <div className="col-sm col-lg-5">
-                    <input
-                      type="text"
-                      className="form-control"
-                      id="txtId"
-                      placeholder="Student Id"
-                    />
-                  </div>
                 </div>
-                <div className="row mb-3">
-                  <label
-                    htmlFor="txtLastName"
-                    className="col-sm-2 col-form-label required"
-                  >
-                    Full name
+                <div className="form-check form-check-inline">
+                  <input
+                    onChange={formik.handleChange}
+                    defaultChecked={formik.values.gender === 1}
+                    className="form-check-input"
+                    type="radio"
+                    id="radFeMale"
+                    name="gender"
+                    value="1"
+                  />
+                  <label className="form-check-label" htmlFor="radFeMale">
+                    {t("female")}
                   </label>
-                  <div className="col-sm-10 col-lg-5">
-                    <input
-                      type="text"
-                      className="form-control"
-                      id="txtLastName"
-                      placeholder="Last name"
-                    />
-                  </div>
-                  <div className="col-sm">
-                    <input
-                      type="text"
-                      className="form-control"
-                      id="txtFirstName"
-                      placeholder="First name"
-                    />
-                  </div>
                 </div>
-                <div className="row mb-3">
-                  <label
-                    htmlFor="radMale"
-                    className="col-sm-2 col-form-label required"
-                  >
-                    Gender
-                  </label>
-                  <div className="col-sm">
-                    <div className="col-form-label">
-                      <div className="form-check form-check-inline">
-                        <input
-                          className="form-check-input"
-                          type="radio"
-                          name="Gender"
-                          id="radMale"
-                          value="1"
-                        />
-                        <label className="form-check-label" htmlFor="radMale">
-                          Male
-                        </label>
-                      </div>
-                      <div className="form-check form-check-inline">
-                        <input
-                          className="form-check-input"
-                          type="radio"
-                          id="radFeMale"
-                          name="Gender"
-                          value="0"
-                        />
-                        <label className="form-check-label" htmlFor="radFeMale">
-                          Female
-                        </label>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-                <div className="row mb-3">
-                  <label
-                    htmlFor="txtPhone"
-                    className="col-sm-2 col-form-label required"
-                  >
-                    Phone
-                  </label>
-                  <div className="col-sm col-lg-5">
-                    <input
-                      type="tel"
-                      className="form-control"
-                      id="txtPhone"
-                      placeholder="Phone number"
-                    />
-                  </div>
-                </div>
-                <div className="row">
-                  <label htmlFor="txtEmail" className="col-sm-2 col-form-label">
-                    Email
-                  </label>
-                  <div className="col-sm">
-                    <input
-                      type="email"
-                      className="form-control"
-                      id="txtEmail"
-                      placeholder="Email address"
-                    />
-                  </div>
-                </div>
-              </form>
-            </div>
-            <div className="modal-footer">
-              <button
-                type="button"
-                className="btn btn-secondary"
-                data-bs-dismiss="modal"
-              >
-                Close
-              </button>
-              <button type="button" className="btn btn-primary">
-                Save
-              </button>
-            </div>
-          </div>
-        </div>
-      </div>
+              </Col>
+            </Row>
+            <Row className="mb-3">
+              <Col sm={4} lg={2} required className="col-form-label">
+                <label htmlFor="txtPhone">{t("phone")}</label>
+              </Col>
+              <Col lg={5}>
+                <input
+                  onChange={formik.handleChange}
+                  value={formik.values.phone}
+                  name="phone"
+                  type="tel"
+                  className={`form-control ${
+                    formik.touched.phone && formik.errors.phone
+                      ? "is-invalid"
+                      : ""
+                  }`}
+                  id="txtPhone"
+                  placeholder={t("phone")}
+                />
+                {formik.errors.phone ? (
+                  <div className="invalid-feedback">{formik.errors.phone}</div>
+                ) : (
+                  ""
+                )}
+              </Col>
+            </Row>
+            <Row className="mb-3">
+              <Col sm={4} lg={2} required className="col-form-label">
+                <label htmlFor="txtPhone">Email</label>
+              </Col>
+              <Col lg={5}>
+                <input
+                  onChange={formik.handleChange}
+                  value={formik.values.email}
+                  name="email"
+                  type="email"
+                  className={`form-control ${
+                    formik.touched.email && formik.errors.email
+                      ? "is-invalid"
+                      : ""
+                  }`}
+                  id="txtEmail"
+                  placeholder="Email address"
+                />
+                {formik.errors.email ? (
+                  <div className="invalid-feedback">{formik.errors.email}</div>
+                ) : (
+                  ""
+                )}
+              </Col>
+            </Row>
+            <Row className="mb-3">
+              <Col sm={4} lg={2} required className="col-form-label">
+                <label htmlFor="txtPhone">{t("major")}</label>
+              </Col>
+              <Col lg={5}>
+                <select
+                  name="majorId"
+                  className="form-select"
+                  aria-label="Default select example"
+                  onChange={formik.handleChange}
+                  defaultValue={formik.values.majorId}
+                >
+                  {majors.map((major, index) => (
+                    <option key={index} value={major.id}>
+                      {major.name}
+                    </option>
+                  ))}
+                </select>
+              </Col>
+            </Row>
+          </form>
+        </Modal.Body>
+        <Modal.Footer className="d-flex justify-content-center">
+          <Button variant="secondary" onClick={handleModalClose}>
+            {t("close")}
+          </Button>
+          <Button
+            variant="primary"
+            disabled={!formik.dirty || !formik.isValid}
+            onClick={formik.handleSubmit}
+          >
+            {t("save")}
+          </Button>
+        </Modal.Footer>
+      </Modal>
+
+      <ConfirmDialog options={confirmOptions} onConfirm={handleSubmit} />
     </>
   );
 };
