@@ -22,6 +22,7 @@ const Major = () => {
   const { t } = useTranslation();
   const [page, setPage] = useState(0);
   const [pageLength, setPageLength] = useState(5);
+  const [search, setSearch] = useState("");
   const [pageNumber, setPageNumber] = useState([]);
   const [majors, setMajors] = useState([]);
   const [showModal, setShowModal] = useState(false);
@@ -63,9 +64,9 @@ const Major = () => {
   };
   useEffect(() => {
     loadData();
-  }, [page, pageLength]);
+  }, [page, pageLength, search]);
   const loadData = () => {
-    majorService.getPaging(page, pageLength).then((res) => {
+    majorService.getPaging(page, pageLength, search).then((res) => {
       setMajors(res.data);
       const items = [
         <Pagination.First key="first" onClick={() => setPage(0)} />,
@@ -139,6 +140,9 @@ const Major = () => {
     setPage(0);
     setPageLength(e.target.value);
   };
+  const handleChangSearch = (e) => {
+    setSearch(e.target.value);
+  };
   return (
     <div>
       <Container className="mt-4">
@@ -161,7 +165,7 @@ const Major = () => {
           </Card.Header>
           <Card.Body>
             <Row className="mb-2">
-              <Col>
+              <Col md={6}>
                 <Row>
                   <label className="form-control-label col-sm-auto">
                     Page Length
@@ -180,7 +184,23 @@ const Major = () => {
                   </Col>
                 </Row>
               </Col>
-              <Col xs="auto"></Col>
+              <Col
+                md={6}
+                xs="auto"
+                className="d-flex flex-md-row justify-content-center align-content-center"
+              >
+                <label className="form-control-label col-sm-auto ">
+                  Search
+                </label>
+                <Col xs="auto">
+                  <input
+                    onChange={handleChangSearch}
+                    type="search"
+                    className="form-control border-primary "
+                    placeholder="Search"
+                  />
+                </Col>
+              </Col>
             </Row>
             <Table bordered hover>
               <thead className="table-primary border-primary">

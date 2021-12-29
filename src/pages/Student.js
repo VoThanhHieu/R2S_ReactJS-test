@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { Col, Modal, Row, Button } from "react-bootstrap";
 import studentService from "../services/studentService";
 import { useFormik } from "formik";
@@ -7,9 +7,13 @@ import ConfirmDialog from "../components/ConfirmDialog";
 import { toast } from "react-toastify";
 import majorService from "./../services/majorService";
 import { useTranslation } from "react-i18next";
+import Ulits from "./../helpers/utils";
+import api from "./../services/api";
 
 const Student = () => {
+  const defaultImage = "https://restfulapi.dnd-group.net/public/photo-icon.png";
   const { t } = useTranslation();
+  const [imagePreview, setImagePreview] = useState(defaultImage);
   const [showModal, setShowModal] = useState(false);
   const [students, setStudents] = useState([]);
   const [majors, setMajors] = useState([]);
@@ -32,6 +36,7 @@ const Student = () => {
       phone: "",
       email: "",
       majorId: 0,
+      avatar: undefined,
     },
     validationSchema: Yup.object({
       id: Yup.number().required(),
@@ -88,7 +93,7 @@ const Student = () => {
         if (res.errorCode === 0) {
           loadData(res.data);
           handleModalClose();
-          toast.success("Add student success");
+          toast.success("Update student success");
         }
       });
     } else {
@@ -116,20 +121,49 @@ const Student = () => {
   };
   const showEditPage = (e, id) => {
     e.preventDefault();
-    // setMajor(majorSelect);
     if (id > 0) {
+      const avatarReq = studentService.getAvatarBase64(id);
+      const studentReq = studentService.get(id);
+      api.promise([avatarReq, studentReq]).then(
+        api.spread((...res) => {
+          if (res[0].errorCode === 0) {
+            setImagePreview(res[0].data.data);
+          } else setImagePreview(defaultImage);
+          formik.setValues(res[1].data);
+          handleModalShow();
+        })
+      );
+
       const majorSelect = majors.find((x) => x.id === id);
       console.log(majorSelect);
-      studentService.get(id).then((res) => {
-        formik.setValues(res.data);
-        handleModalShow();
-      });
+      // studentService.get(id).then((res) => {
+      //   formik.setValues(res.data);
+      //   handleModalShow();
+      // });
+      // studentService.getAvatarBase64(id).then((res) => {
+      //   if (res.errorCode === 0) {
+      //     setImagePreview(res.data.data);
+      //   } else setImagePreview(defaultImage);
+      // });
     } else {
       formik.resetForm();
+      setImagePreview(defaultImage);
       handleModalShow();
     }
   };
-
+  const inputFieldRef = useRef();
+  const handleChaneImage = (e) => {
+    if (e.target.files && e.target.files[0])
+      setImagePreview(URL.createObjectURL(e.target.files[0]));
+    formik.setFieldValue("avatar", e.target.files[0]);
+  };
+  const downloadImage = () => {
+    studentService.downloadAvatar(formik.values.id).then((res) => {
+      if (res.size > 0)
+        return Ulits.downloadFile(`${formik.values.stuId}.zip`, res);
+      else toast.warning("No avatar to download");
+    });
+  };
   return (
     <>
       <div className="container mt-4">
@@ -224,187 +258,227 @@ const Student = () => {
           </Modal.Title>
         </Modal.Header>
         <Modal.Body>
-          <form>
-            <Row className="mb-3">
-              <Col sm={4} lg={2} required className="col-form-label">
-                <label htmlFor="txtId">Code</label>
-              </Col>
-              <Col lg={5}>
-                <input
-                  onChange={formik.handleChange}
-                  value={formik.values.stuId}
-                  name="stuId"
-                  type="text"
-                  className={`form-control ${
-                    formik.touched.stuId && formik.errors.stuId
-                      ? "is-invalid"
-                      : ""
-                  }`}
-                  id="txtId"
-                  placeholder="Student Code"
-                />
-                {formik.errors.stuId ? (
-                  <div className="invalid-feedback">{formik.errors.stuId}</div>
-                ) : (
-                  ""
-                )}
-              </Col>
-            </Row>
-            <Row className="mb-3">
-              <Col sm={12} lg={2} required className="col-form-label">
-                <label htmlFor="txtLastName">{t("fullname")}</label>
-              </Col>
-              <Col sm={6} lg={5} required className="col-form-label">
-                <input
-                  onChange={formik.handleChange}
-                  value={formik.values.lastName}
-                  name="lastName"
-                  type="text"
-                  className={`form-control ${
-                    formik.touched.lastName && formik.errors.lastName
-                      ? "is-invalid"
-                      : ""
-                  }`}
-                  id="txtLastName"
-                  placeholder="Last name"
-                />
-                {formik.errors.lastName ? (
-                  <div className="invalid-feedback">
-                    {formik.errors.lastName}
-                  </div>
-                ) : (
-                  ""
-                )}
-              </Col>
-              <Col sm={6} lg={5} required className="col-form-label">
-                <input
-                  onChange={formik.handleChange}
-                  value={formik.values.firstName}
-                  name="firstName"
-                  type="text"
-                  className={`form-control ${
-                    formik.touched.firstName && formik.errors.firstName
-                      ? "is-invalid"
-                      : ""
-                  }`}
-                  id="txtFirstName"
-                  placeholder="First name"
-                />
-                {formik.errors.firstName ? (
-                  <div className="invalid-feedback">
-                    {formik.errors.firstName}
-                  </div>
-                ) : (
-                  ""
-                )}
-              </Col>
-            </Row>
-            <Row className="mb-3">
-              <Col sm={2} required className="col-form-label">
-                <label htmlFor="radMale"> {t("gender")} </label>
-              </Col>
-              <Col className="col-form-label">
-                <div className="form-check form-check-inline">
-                  <input
-                    onChange={formik.handleChange}
-                    defaultChecked={formik.values.gender === 0}
-                    className="form-check-input"
-                    type="radio"
-                    name="gender"
-                    id="radMale"
-                    value="0"
-                  />
-                  <label className="form-check-label" htmlFor="radMale">
-                    {t("male")}
-                  </label>
-                </div>
-                <div className="form-check form-check-inline">
-                  <input
-                    onChange={formik.handleChange}
-                    defaultChecked={formik.values.gender === 1}
-                    className="form-check-input"
-                    type="radio"
-                    id="radFeMale"
-                    name="gender"
-                    value="1"
-                  />
-                  <label className="form-check-label" htmlFor="radFeMale">
-                    {t("female")}
-                  </label>
-                </div>
-              </Col>
-            </Row>
-            <Row className="mb-3">
-              <Col sm={4} lg={2} required className="col-form-label">
-                <label htmlFor="txtPhone">{t("phone")}</label>
-              </Col>
-              <Col lg={5}>
-                <input
-                  onChange={formik.handleChange}
-                  value={formik.values.phone}
-                  name="phone"
-                  type="tel"
-                  className={`form-control ${
-                    formik.touched.phone && formik.errors.phone
-                      ? "is-invalid"
-                      : ""
-                  }`}
-                  id="txtPhone"
-                  placeholder={t("phone")}
-                />
-                {formik.errors.phone ? (
-                  <div className="invalid-feedback">{formik.errors.phone}</div>
-                ) : (
-                  ""
-                )}
-              </Col>
-            </Row>
-            <Row className="mb-3">
-              <Col sm={4} lg={2} required className="col-form-label">
-                <label htmlFor="txtPhone">Email</label>
-              </Col>
-              <Col lg={5}>
-                <input
-                  onChange={formik.handleChange}
-                  value={formik.values.email}
-                  name="email"
-                  type="email"
-                  className={`form-control ${
-                    formik.touched.email && formik.errors.email
-                      ? "is-invalid"
-                      : ""
-                  }`}
-                  id="txtEmail"
-                  placeholder="Email address"
-                />
-                {formik.errors.email ? (
-                  <div className="invalid-feedback">{formik.errors.email}</div>
-                ) : (
-                  ""
-                )}
-              </Col>
-            </Row>
-            <Row className="mb-3">
-              <Col sm={4} lg={2} required className="col-form-label">
-                <label htmlFor="txtPhone">{t("major")}</label>
-              </Col>
-              <Col lg={5}>
-                <select
-                  name="majorId"
-                  className="form-select"
-                  aria-label="Default select example"
-                  onChange={formik.handleChange}
-                  defaultValue={formik.values.majorId}
+          <Row>
+            <Col md={12} lg={4}>
+              <img
+                src={imagePreview}
+                alt=""
+                className="img-thumbnail rounded-circle border-primary d-block"
+              />
+              <input
+                type="file"
+                ref={inputFieldRef}
+                className="d-none"
+                onChange={handleChaneImage}
+              />
+              <div className="mt-3 d-flex justify-content-center gap-2">
+                <Button
+                  variant="primary"
+                  size="sm"
+                  onClick={() => inputFieldRef.current.click()}
                 >
-                  {majors.map((major, index) => (
-                    <option key={index} value={major.id}>
-                      {major.name}
-                    </option>
-                  ))}
-                </select>
-              </Col>
-            </Row>
-          </form>
+                  Change
+                </Button>
+                <Button
+                  variant="warning"
+                  size="sm"
+                  onClick={downloadImage}
+                  // onClick={() => inputFieldRef.current.click()}
+                >
+                  Download
+                </Button>
+              </div>
+            </Col>
+            <Col>
+              <form>
+                <Row className="mb-3">
+                  <Col sm={4} lg={2} required className="col-form-label">
+                    <label htmlFor="txtId">Code</label>
+                  </Col>
+                  <Col lg={5}>
+                    <input
+                      onChange={formik.handleChange}
+                      value={formik.values.stuId}
+                      name="stuId"
+                      type="text"
+                      className={`form-control ${
+                        formik.touched.stuId && formik.errors.stuId
+                          ? "is-invalid"
+                          : ""
+                      }`}
+                      id="txtId"
+                      placeholder="Student Code"
+                    />
+                    {formik.errors.stuId ? (
+                      <div className="invalid-feedback">
+                        {formik.errors.stuId}
+                      </div>
+                    ) : (
+                      ""
+                    )}
+                  </Col>
+                </Row>
+                <Row className="mb-3">
+                  <Col sm={12} lg={2} required className="col-form-label">
+                    <label htmlFor="txtLastName">{t("fullname")}</label>
+                  </Col>
+                  <Col sm={6} lg={5} required className="col-form-label">
+                    <input
+                      onChange={formik.handleChange}
+                      value={formik.values.lastName}
+                      name="lastName"
+                      type="text"
+                      className={`form-control ${
+                        formik.touched.lastName && formik.errors.lastName
+                          ? "is-invalid"
+                          : ""
+                      }`}
+                      id="txtLastName"
+                      placeholder="Last name"
+                    />
+                    {formik.errors.lastName ? (
+                      <div className="invalid-feedback">
+                        {formik.errors.lastName}
+                      </div>
+                    ) : (
+                      ""
+                    )}
+                  </Col>
+                  <Col sm={6} lg={5} required className="col-form-label">
+                    <input
+                      onChange={formik.handleChange}
+                      value={formik.values.firstName}
+                      name="firstName"
+                      type="text"
+                      className={`form-control ${
+                        formik.touched.firstName && formik.errors.firstName
+                          ? "is-invalid"
+                          : ""
+                      }`}
+                      id="txtFirstName"
+                      placeholder="First name"
+                    />
+                    {formik.errors.firstName ? (
+                      <div className="invalid-feedback">
+                        {formik.errors.firstName}
+                      </div>
+                    ) : (
+                      ""
+                    )}
+                  </Col>
+                </Row>
+                <Row className="mb-3">
+                  <Col sm={2} required className="col-form-label">
+                    <label htmlFor="radMale"> {t("gender")} </label>
+                  </Col>
+                  <Col className="col-form-label">
+                    <div className="form-check form-check-inline">
+                      <input
+                        onChange={formik.handleChange}
+                        defaultChecked={formik.values.gender === 0}
+                        className="form-check-input"
+                        type="radio"
+                        name="gender"
+                        id="radMale"
+                        value="0"
+                      />
+                      <label className="form-check-label" htmlFor="radMale">
+                        {t("male")}
+                      </label>
+                    </div>
+                    <div className="form-check form-check-inline">
+                      <input
+                        onChange={formik.handleChange}
+                        defaultChecked={formik.values.gender === 1}
+                        className="form-check-input"
+                        type="radio"
+                        id="radFeMale"
+                        name="gender"
+                        value="1"
+                      />
+                      <label className="form-check-label" htmlFor="radFeMale">
+                        {t("female")}
+                      </label>
+                    </div>
+                  </Col>
+                </Row>
+                <Row className="mb-3">
+                  <Col sm={4} lg={2} required className="col-form-label">
+                    <label htmlFor="txtPhone">{t("phone")}</label>
+                  </Col>
+                  <Col lg={5}>
+                    <input
+                      onChange={formik.handleChange}
+                      value={formik.values.phone}
+                      name="phone"
+                      type="tel"
+                      className={`form-control ${
+                        formik.touched.phone && formik.errors.phone
+                          ? "is-invalid"
+                          : ""
+                      }`}
+                      id="txtPhone"
+                      placeholder={t("phone")}
+                    />
+                    {formik.errors.phone ? (
+                      <div className="invalid-feedback">
+                        {formik.errors.phone}
+                      </div>
+                    ) : (
+                      ""
+                    )}
+                  </Col>
+                </Row>
+                <Row className="mb-3">
+                  <Col sm={4} lg={2} required className="col-form-label">
+                    <label htmlFor="txtPhone">Email</label>
+                  </Col>
+                  <Col lg={5}>
+                    <input
+                      onChange={formik.handleChange}
+                      value={formik.values.email}
+                      name="email"
+                      type="email"
+                      className={`form-control ${
+                        formik.touched.email && formik.errors.email
+                          ? "is-invalid"
+                          : ""
+                      }`}
+                      id="txtEmail"
+                      placeholder="Email address"
+                    />
+                    {formik.errors.email ? (
+                      <div className="invalid-feedback">
+                        {formik.errors.email}
+                      </div>
+                    ) : (
+                      ""
+                    )}
+                  </Col>
+                </Row>
+                <Row className="mb-3">
+                  <Col sm={4} lg={2} required className="col-form-label">
+                    <label htmlFor="txtPhone">{t("major")}</label>
+                  </Col>
+                  <Col lg={5}>
+                    <select
+                      name="majorId"
+                      className="form-select"
+                      aria-label="Default select example"
+                      onChange={formik.handleChange}
+                      defaultValue={formik.values.majorId}
+                    >
+                      {majors.map((major, index) => (
+                        <option key={index} value={major.id}>
+                          {major.name}
+                        </option>
+                      ))}
+                    </select>
+                  </Col>
+                </Row>
+              </form>
+            </Col>
+          </Row>
         </Modal.Body>
         <Modal.Footer className="d-flex justify-content-center">
           <Button variant="secondary" onClick={handleModalClose}>
